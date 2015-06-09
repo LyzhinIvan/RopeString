@@ -14,11 +14,12 @@ namespace RopeString
         private string _value;
         private RopeString _leftChild;
         private RopeString _rightChild;
-         
+
         public RopeString(string value = "")
         {
             _value = value;
             _isLeaf = true;
+            Length = value.Length;
         }
 
         private RopeString(RopeString left, RopeString right)
@@ -26,28 +27,49 @@ namespace RopeString
             _leftChild = left;
             _rightChild = right;
             _isLeaf = false;
+            Length = GetLength(left) + GetLength(right);
         }
 
         public string Value
         {
-            get {
-                return _isLeaf ? _value : GetValue(_leftChild)+GetValue(_rightChild);
-            }
+            get { return ToString(); }
         }
+
+        public int Length { get; private set; }
 
         private static string GetValue(RopeString rope)
         {
             return rope == null ? "" : rope.Value;
         }
 
+        private static int GetLength(RopeString rope)
+        {
+            return rope == null ? 0 : rope.Length;
+        }
+
         public override string ToString()
         {
-            return Value;
+            return _isLeaf ? _value : GetValue(_leftChild) + GetValue(_rightChild);
         }
 
         public static RopeString operator +(RopeString lhs, RopeString rhs)
         {
             return new RopeString(lhs, rhs);
+        }
+
+        public char this[int index]
+        {
+            get
+            {
+                if(index<0 || index>=Length)
+                    throw new IndexOutOfRangeException("Индекс находился вне границ строки");
+                if (!_isLeaf)
+                {
+                    return index < GetLength(_leftChild) ? _leftChild[index] : _rightChild[index - GetLength(_leftChild)];
+                }
+                else
+                    return _value[index];
+            }
         }
     }
 
@@ -80,6 +102,30 @@ namespace RopeString
         public string ConcatTest(string first, string second)
         {
             return (new RopeString(first) + new RopeString(second)).Value;
+        }
+
+        [Test]
+        [TestCase("")]
+        [TestCase("hello")]
+        [TestCase("hello world")]
+        public void EnumerateTest(string str)
+        {
+            var rope = new RopeString(str);
+            for (int i = 0; i < str.Length; ++i)
+                Assert.That(rope[i], Is.EqualTo(str[i]));
+        }
+
+        [Test]
+        [TestCase("", "")]
+        [TestCase("hello", "")]
+        [TestCase("", "world")]
+        [TestCase("hello ", "world")]
+        public void EnumerateConcatedTest(string first, string second)
+        {
+            var str = first + second;
+            var rope = new RopeString(first) + new RopeString(second);
+            for (int i = 0; i < str.Length; ++i)
+                Assert.That(rope[i], Is.EqualTo(str[i]));
         }
     }
 }
