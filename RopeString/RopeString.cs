@@ -1,12 +1,4 @@
 ﻿using System;
-using System.CodeDom;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace RopeString
@@ -15,12 +7,12 @@ namespace RopeString
     {
         #region Private members
 
-        private bool _isLeaf;
-        private string _value;
-        private RopeString _leftChild;
-        private RopeString _rightChild;
-        private int _offset = 0;
-        private int _length;
+        private bool _isLeaf; // Является ли узел листом
+        private string _value; // Строка, хранимая в узле
+        private RopeString _leftChild; // Левый сын
+        private RopeString _rightChild; // Правый сын
+        private int _offset = 0; // Смещение относительно начала строки
+        private int _length; // Длина подстроки
 
         #endregion
 
@@ -49,11 +41,13 @@ namespace RopeString
 
         #region Public fields
 
+        // Возвращает результат в узле
         public string Value
         {
             get { return ToString(); }
         }
 
+        // Возвращает длину результата
         public int Length
         {
             get { return _length; }
@@ -62,13 +56,14 @@ namespace RopeString
         #endregion
 
         #region Private methods
-
+        
+        // Вспомогательная функция для получения результата, избавляющая от проверки на null
         private static string GetValue(RopeString rope)
         {
             return rope == null ? "" : rope.Value;
         }
 
-
+        // Вспомогательная функция для получения длины, избавляющая от проверки на null
         private static int GetLength(RopeString rope)
         {
             return rope == null ? 0 : rope.Length;
@@ -77,6 +72,8 @@ namespace RopeString
         /// <summary>Разбивает строку на две части </summary>
         private void Split(int leftLength, out RopeString left, out RopeString right)
         {
+            leftLength = Math.Min(leftLength, this.Length);
+            // Тривиальные случаи
             if (leftLength == 0)
             {
                 left = new RopeString();
@@ -89,7 +86,7 @@ namespace RopeString
             }
             else
             {
-                if (_isLeaf)
+                if (_isLeaf) // Базовый случай - лист
                 {
                     left = new RopeString(this.Value);
                     left._length = leftLength;
@@ -99,6 +96,7 @@ namespace RopeString
                 }
                 else
                 {
+                    // Определяем, в каком сыне находится граница разбиения
                     if (leftLength <= GetLength(_leftChild))
                     {
                         RopeString leftLeft, leftRight;
@@ -121,6 +119,7 @@ namespace RopeString
 
         #region Public methods
 
+        // Приведение к обычной строке
         public override string ToString()
         {
             return _isLeaf ? _value.Substring(_offset, _length) : GetValue(_leftChild) + GetValue(_rightChild);
@@ -132,6 +131,7 @@ namespace RopeString
             return new RopeString(lhs, rhs);
         }
 
+        /// <summary>Обращение к отдельным символам строки</summary>
         public char this[int index]
         {
             get
@@ -149,17 +149,34 @@ namespace RopeString
             }
         }
 
+        /// <summary>Выделение подстроки от startIndex до конца строки</summary>
         public RopeString Substring(int startIndex)
         {
             return Substring(startIndex, Length-startIndex);
         }
 
+        /// <summary>Выделение подстроки, начиная со startIndex длины length</summary>
         public RopeString Substring(int startIndex, int length)
         {
             RopeString left, mid, right;
             this.Split(startIndex, out left, out right);
             right.Split(length, out mid, out right);
             return mid;
+        }
+
+        /// <summary>Удаление из строки подстроки от startIndex до конца</summary>
+        public RopeString Erase(int startIndex)
+        {
+            return Erase(startIndex, Length - startIndex);
+        }
+
+        /// <summary>Удаление из строки подстроки от startIndex длины length</summary>
+        public RopeString Erase(int startIndex, int length)
+        {
+            RopeString left, mid, right;
+            this.Split(startIndex, out left, out right);
+            right.Split(length, out mid, out right);
+            return left + right;
         }
 
         #endregion
@@ -239,7 +256,20 @@ namespace RopeString
         public string SubstringTest(string str, int startIndex, int length)
         {
             var rope = new RopeString(str);
-            return rope.Substring(startIndex, length).Value;
+            if (startIndex + length == str.Length)
+                return rope.Substring(startIndex).Value;
+            else return rope.Substring(startIndex, length).Value;
+        }
+
+        [Test]
+        [TestCase("", 0, 0, Result = "")]
+        [TestCase("hello", 0, 3, Result = "lo")]
+        [TestCase("hello", 3, 2, Result = "hel")]
+        [TestCase("hello", 1, 3, Result = "ho")]
+        public string EraseTest(string str, int startIndex, int length)
+        {
+            var rope = new RopeString(str);
+            return startIndex + length == str.Length ? rope.Erase(startIndex).Value : rope.Erase(startIndex, length).Value;
         }
     }
 }
