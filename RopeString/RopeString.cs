@@ -170,6 +170,7 @@ namespace RopeString
             return Erase(startIndex, Length - startIndex);
         }
 
+
         /// <summary>Удаление из строки подстроки от startIndex длины length</summary>
         public RopeString Erase(int startIndex, int length)
         {
@@ -177,6 +178,14 @@ namespace RopeString
             this.Split(startIndex, out left, out right);
             right.Split(length, out mid, out right);
             return left + right;
+        }
+
+        /// <summary>Вставляет переданную строку в нужную позицию</summary>
+        public RopeString Insert(int position, RopeString rope)
+        {
+            RopeString left, right;
+            this.Split(position, out left, out right);
+            return left + rope + right;
         }
 
         #endregion
@@ -270,6 +279,16 @@ namespace RopeString
         {
             var rope = new RopeString(str);
             return startIndex + length == str.Length ? rope.Erase(startIndex).Value : rope.Erase(startIndex, length).Value;
+        }
+
+        [Test]
+        [TestCase("", 0, "hello", Result = "hello")]
+        [TestCase("hello", 2, "world", Result = "heworldllo")]
+        [TestCase("hello", 5, "world", Result = "helloworld")]
+        public string InsertTest(string str, int position, string fragment)
+        {
+            var rope = new RopeString(str);
+            return str.Insert(position, fragment);
         }
     }
 }
